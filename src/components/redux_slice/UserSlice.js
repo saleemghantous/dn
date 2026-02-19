@@ -1,10 +1,11 @@
 import { createSlice } from "@reduxjs/toolkit";
 
-const initialState = {
-  username: "",
-  role: "",        // "admin" or "user"
-  loginStatus: false,
-};
+// Restore session from localStorage if available
+const saved = JSON.parse(localStorage.getItem("poker_session") || "null");
+
+const initialState = saved
+  ? { username: saved.username, role: saved.role, loginStatus: true }
+  : { username: "", role: "", loginStatus: false };
 
 export const UserSlice = createSlice({
   name: "user",
@@ -17,11 +18,13 @@ export const UserSlice = createSlice({
       state.username = action.payload.username;
       state.role = action.payload.role;
       state.loginStatus = true;
+      localStorage.setItem("poker_session", JSON.stringify({ username: action.payload.username, role: action.payload.role }));
     },
     logoutUser: (state) => {
       state.username = "";
       state.role = "";
       state.loginStatus = false;
+      localStorage.removeItem("poker_session");
     },
   },
 });

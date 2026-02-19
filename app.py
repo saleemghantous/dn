@@ -146,11 +146,11 @@ def get_open_games():
 @app.route("/api/games", methods=["POST"])
 def create_game():
     today = date.today().strftime("%d/%m/%Y")
-    existing = games_col.find_one({"date": today})
-    if existing:
-        return jsonify({"error": "Game for today already exists", "game": game_to_dict(existing)}), 400
+    # Count how many games already exist for today to build a unique name
+    today_count = games_col.count_documents({"date": today})
+    name = today if today_count == 0 else f"{today} (#{today_count + 1})"
     new_game = {
-        "name": today,
+        "name": name,
         "date": today,
         "open": True,
         "players": [],

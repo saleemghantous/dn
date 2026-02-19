@@ -203,6 +203,30 @@
   font-weight: 700;
   font-size: 0.95rem;
   color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.online-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.online-dot.on {
+  background: #2ed573;
+  box-shadow: 0 0 4px rgba(46, 213, 115, 0.5);
+}
+
+.online-dot.off {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.debt-item.offline {
+  opacity: 0.6;
+  border-style: dashed;
 }
 
 .balance-badge {

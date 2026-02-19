@@ -122,13 +122,16 @@ function GameView() {
     );
   }
 
-  const otherPlayers = game.players.filter((p) => p !== username);
+  // Show ALL allowed players (even if they haven't joined yet)
+  const allowedSet = new Set(game.allowed_players || []);
+  const joinedSet = new Set(game.players || []);
+  const allRelevant = [...new Set([...allowedSet, ...joinedSet])].filter((p) => p !== username);
 
-  const totalPositive = otherPlayers.reduce((s, p) => {
+  const totalPositive = allRelevant.reduce((s, p) => {
     const b = getBalance(p);
     return b > 0 ? s + b : s;
   }, 0);
-  const totalNegative = otherPlayers.reduce((s, p) => {
+  const totalNegative = allRelevant.reduce((s, p) => {
     const b = getBalance(p);
     return b < 0 ? s + b : s;
   }, 0);
@@ -150,16 +153,16 @@ function GameView() {
         <div className="summary-row">
           <div className="summary-item owed">
             <span className="summary-label">إلي</span>
-            <span className="summary-amount">₪{totalPositive}</span>
+            <span className="summary-amount" dir="ltr">₪{totalPositive}</span>
           </div>
           <div className="summary-item owe">
             <span className="summary-label">عليّ</span>
-            <span className="summary-amount">₪{Math.abs(totalNegative)}</span>
+            <span className="summary-amount" dir="ltr">₪{Math.abs(totalNegative)}</span>
           </div>
           <div className={`summary-item net ${netTotal >= 0 ? "positive" : "negative"}`}>
             <span className="summary-label">الصافي</span>
-            <span className="summary-amount">
-              {netTotal >= 0 ? "+" : ""}₪{netTotal}
+            <span className="summary-amount" dir="ltr">
+              {netTotal >= 0 ? "+" : ""}{netTotal}₪
             </span>
           </div>
         </div>
@@ -172,18 +175,22 @@ function GameView() {
           + يعني إلك عنده &nbsp;|&nbsp; − يعني عليك إله &nbsp;(−٥٠ إلى +٥٠)
         </p>
 
-        {otherPlayers.length === 0 ? (
+        {allRelevant.length === 0 ? (
           <p className="no-players-text">لا يوجد لاعبين آخرين في اللعبة بعد.</p>
         ) : (
           <div className="debt-list">
-            {otherPlayers.map((player) => {
+            {allRelevant.map((player) => {
               const bal = getBalance(player);
+              const isOnline = joinedSet.has(player);
               return (
-                <div className="debt-item" key={player}>
+                <div className={`debt-item ${!isOnline ? "offline" : ""}`} key={player}>
                   <div className="debt-player-row">
-                    <span className="debt-player-name">{player}</span>
-                    <span className={`balance-badge ${bal > 0 ? "positive" : bal < 0 ? "negative" : "zero"}`}>
-                      {bal > 0 ? `إلك ₪${bal}` : bal < 0 ? `عليك ₪${Math.abs(bal)}` : "متعادل"}
+                    <span className="debt-player-name">
+                      {player}
+                      <span className={`online-dot ${isOnline ? "on" : "off"}`} title={isOnline ? "في اللعبة" : "لم يدخل بعد"}></span>
+                    </span>
+                    <span className={`balance-badge ${bal > 0 ? "positive" : bal < 0 ? "negative" : "zero"}`} dir="ltr">
+                      {bal > 0 ? `₪${bal} إلك` : bal < 0 ? `₪${Math.abs(bal)} عليك` : "متعادل"}
                     </span>
                   </div>
                   <div className="debt-controls">
@@ -194,7 +201,7 @@ function GameView() {
                     >
                       −
                     </button>
-                    <span className={`debt-amount ${bal > 0 ? "positive" : bal < 0 ? "negative" : ""}`}>
+                    <span className={`debt-amount ${bal > 0 ? "positive" : bal < 0 ? "negative" : ""}`} dir="ltr">
                       {bal > 0 ? "+" : ""}{bal}
                     </span>
                     <button
