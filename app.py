@@ -137,8 +137,8 @@ def get_open_games():
     username = request.args.get("username", "")
     all_open = [game_to_dict(g) for g in games_col.find({"open": True})]
     if username:
-        # Only return games where the user is in allowed_players (or allowed_players is empty = legacy)
-        filtered = [g for g in all_open if username in g.get("allowed_players", []) or len(g.get("allowed_players", [])) == 0]
+        # Only return games where the user is explicitly in allowed_players
+        filtered = [g for g in all_open if username in g.get("allowed_players", [])]
         return jsonify(filtered)
     return jsonify(all_open)
 
