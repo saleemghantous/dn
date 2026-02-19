@@ -12,7 +12,7 @@ function GameView() {
   const navigate = useNavigate();
 
   const [game, setGame] = useState(null);
-  const [debts, setDebts] = useState([]);
+  const [balances, setBalances] = useState([]); // [{ other, amount }]
   const [loading, setLoading] = useState(true);
   const intervalRef = useRef(null);
   const lastHashRef = useRef("");
@@ -26,7 +26,7 @@ function GameView() {
       ]);
       const foundGame = gameRes.data.find((g) => g.id === gameId);
       setGame(foundGame || null);
-      setDebts(debtsRes.data);
+      setBalances(debtsRes.data); // [{ other, amount }]
     } catch (err) {
       console.error(err);
     }
@@ -58,35 +58,36 @@ function GameView() {
     return () => clearInterval(intervalRef.current);
   }, [loginStatus, navigate, fetchFullData, pollForChanges]);
 
-  const getMyDebtTo = (toUser) => {
-    const d = debts.find((d) => d.from_user === username && d.to_user === toUser);
-    return d ? d.amount : 0;
+  const getBalance = (otherPlayer) => {
+    const b = balances.find((x) => x.other === otherPlayer);
+    return b ? b.amount : 0;
   };
 
-  const getDebtToMe = (fromUser) => {
-    const d = debts.find((d) => d.from_user === fromUser && d.to_user === username);
-    return d ? d.amount : 0;
-  };
+  const handleSetBalance = async (otherPlayer, newAmount) => {
+    const clamped = Math.max(-50, Math.min(50, newAmount));
+    const rounded = Math.round(clamped / 5) * 5;
 
-  const handleSetDebt = async (toUser, amount) => {
-    const clamped = Math.max(0, Math.min(50, amount));
     // Optimistic update
-    setDebts((prev) => {
-      const existing = prev.find((d) => d.from_user === username && d.to_user === toUser);
+    setBalances((prev) => {
+      const existing = prev.find((b) => b.other === otherPlayer);
       if (existing) {
-        return prev.map((d) =>
-          d.from_user === username && d.to_user === toUser ? { ...d, amount: clamped } : d
+        if (rounded === 0) {
+          return prev.filter((b) => b.other !== otherPlayer);
+        }
+        return prev.map((b) =>
+          b.other === otherPlayer ? { ...b, amount: rounded } : b
         );
-      } else if (clamped > 0) {
-        return [...prev, { game_id: gameId, from_user: username, to_user: toUser, amount: clamped }];
+      } else if (rounded !== 0) {
+        return [...prev, { other: otherPlayer, amount: rounded }];
       }
       return prev;
     });
+
     try {
       await axios.put(`/api/games/${gameId}/debt`, {
-        from_user: username,
-        to_user: toUser,
-        amount: clamped,
+        user: username,
+        other: otherPlayer,
+        amount: rounded,
       });
       lastHashRef.current = ""; // force next poll to refetch
     } catch (err) {
@@ -123,20 +124,15 @@ function GameView() {
 
   const otherPlayers = game.players.filter((p) => p !== username);
 
-  const getSummary = () => {
-    const summary = [];
-    otherPlayers.forEach((player) => {
-      const iOwe = getMyDebtTo(player);
-      const theyOweMe = getDebtToMe(player);
-      const net = theyOweMe - iOwe;
-      summary.push({ player, iOwe, theyOweMe, net });
-    });
-    return summary;
-  };
-
-  const summary = getSummary();
-  const totalIOwe = summary.reduce((s, x) => s + x.iOwe, 0);
-  const totalOwedToMe = summary.reduce((s, x) => s + x.theyOweMe, 0);
+  const totalPositive = otherPlayers.reduce((s, p) => {
+    const b = getBalance(p);
+    return b > 0 ? s + b : s;
+  }, 0);
+  const totalNegative = otherPlayers.reduce((s, p) => {
+    const b = getBalance(p);
+    return b < 0 ? s + b : s;
+  }, 0);
+  const netTotal = totalPositive + totalNegative;
 
   return (
     <div className="gameview-container">
@@ -152,64 +148,66 @@ function GameView() {
       {/* Net Summary */}
       <div className="gameview-card summary-card">
         <div className="summary-row">
-          <div className="summary-item owe">
-            <span className="summary-label">عليّ</span>
-            <span className="summary-amount">₪{totalIOwe}</span>
-          </div>
           <div className="summary-item owed">
             <span className="summary-label">إلي</span>
-            <span className="summary-amount">₪{totalOwedToMe}</span>
+            <span className="summary-amount">₪{totalPositive}</span>
           </div>
-          <div className={`summary-item net ${totalOwedToMe - totalIOwe >= 0 ? "positive" : "negative"}`}>
+          <div className="summary-item owe">
+            <span className="summary-label">عليّ</span>
+            <span className="summary-amount">₪{Math.abs(totalNegative)}</span>
+          </div>
+          <div className={`summary-item net ${netTotal >= 0 ? "positive" : "negative"}`}>
             <span className="summary-label">الصافي</span>
             <span className="summary-amount">
-              {totalOwedToMe - totalIOwe >= 0 ? "+" : ""}₪{totalOwedToMe - totalIOwe}
+              {netTotal >= 0 ? "+" : ""}₪{netTotal}
             </span>
           </div>
         </div>
       </div>
 
-      {/* Debt per player */}
+      {/* Balance per player */}
       <div className="gameview-card">
-        <h2>حدد المبلغ اللي عليك</h2>
-        <p className="card-subtitle">اضغط + أو - لتحديد كم بتدين لكل لاعب (٠–٥٠، كل خطوة ٥)</p>
+        <h2>حدد المبلغ لكل لاعب</h2>
+        <p className="card-subtitle">
+          + يعني إلك عنده &nbsp;|&nbsp; − يعني عليك إله &nbsp;(−٥٠ إلى +٥٠)
+        </p>
 
         {otherPlayers.length === 0 ? (
           <p className="no-players-text">لا يوجد لاعبين آخرين في اللعبة بعد.</p>
         ) : (
           <div className="debt-list">
-            {summary.map(({ player, iOwe, theyOweMe, net }) => (
-              <div className="debt-item" key={player}>
-                <div className="debt-player-row">
-                  <span className="debt-player-name">{player}</span>
-                  {theyOweMe > 0 && (
-                    <span className="owes-me-badge">مدين لك ₪{theyOweMe}</span>
-                  )}
-                  {net !== 0 && (
-                    <span className={`net-badge ${net > 0 ? "positive" : "negative"}`}>
-                      {net > 0 ? `+₪${net}` : `-₪${Math.abs(net)}`}
+            {otherPlayers.map((player) => {
+              const bal = getBalance(player);
+              return (
+                <div className="debt-item" key={player}>
+                  <div className="debt-player-row">
+                    <span className="debt-player-name">{player}</span>
+                    <span className={`balance-badge ${bal > 0 ? "positive" : bal < 0 ? "negative" : "zero"}`}>
+                      {bal > 0 ? `إلك ₪${bal}` : bal < 0 ? `عليك ₪${Math.abs(bal)}` : "متعادل"}
                     </span>
-                  )}
+                  </div>
+                  <div className="debt-controls">
+                    <button
+                      className="debt-btn minus"
+                      onClick={() => handleSetBalance(player, bal - 5)}
+                      disabled={bal <= -50}
+                    >
+                      −
+                    </button>
+                    <span className={`debt-amount ${bal > 0 ? "positive" : bal < 0 ? "negative" : ""}`}>
+                      {bal > 0 ? "+" : ""}{bal}
+                    </span>
+                    <button
+                      className="debt-btn plus"
+                      onClick={() => handleSetBalance(player, bal + 5)}
+                      disabled={bal >= 50}
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
-                <div className="debt-controls">
-                  <button
-                    className="debt-btn minus"
-                    onClick={() => handleSetDebt(player, iOwe - 5)}
-                    disabled={iOwe <= 0}
-                  >
-                    −
-                  </button>
-                  <span className="debt-amount">₪{iOwe}</span>
-                  <button
-                    className="debt-btn plus"
-                    onClick={() => handleSetDebt(player, iOwe + 5)}
-                    disabled={iOwe >= 50}
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

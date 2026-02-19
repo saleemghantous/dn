@@ -205,35 +205,31 @@
   color: #fff;
 }
 
-.owes-me-badge {
+.balance-badge {
   padding: 3px 10px;
   border-radius: 20px;
   font-size: 0.7rem;
   font-weight: 600;
-  background: rgba(46, 213, 115, 0.15);
-  color: #2ed573;
-  border: 1px solid rgba(46, 213, 115, 0.25);
-}
-
-.net-badge {
-  padding: 3px 10px;
-  border-radius: 20px;
-  font-size: 0.7rem;
-  font-weight: 700;
   margin-right: auto;
   margin-left: 0;
 }
 
-.net-badge.positive {
+.balance-badge.positive {
   background: rgba(46, 213, 115, 0.15);
   color: #2ed573;
   border: 1px solid rgba(46, 213, 115, 0.25);
 }
 
-.net-badge.negative {
+.balance-badge.negative {
   background: rgba(255, 107, 107, 0.15);
   color: #ff6b6b;
   border: 1px solid rgba(255, 107, 107, 0.25);
+}
+
+.balance-badge.zero {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* +/- Controls */
@@ -301,6 +297,14 @@
   color: #ffa502;
   min-width: 56px;
   text-align: center;
+}
+
+.debt-amount.positive {
+  color: #2ed573;
+}
+
+.debt-amount.negative {
+  color: #ff6b6b;
 }
 
 .no-players-text {

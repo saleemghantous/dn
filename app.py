@@ -225,52 +225,74 @@ def set_allowed_players(game_id):
     return jsonify(game_to_dict(game))
 
 
-# ---------- Debts ----------
-# debts collection: { game_id: str, from_user: str, to_user: str, amount: int }
-# from_user owes to_user the amount (0-50, step 5)
+# ---------- Debts (single record per pair) ----------
+# Schema: { game_id: str, player_a: str, player_b: str, amount: int }
+# player_a < player_b (alphabetically sorted — canonical ordering)
+# amount > 0 → player_b owes player_a
+# amount < 0 → player_a owes player_b
+
+
+def canonical_pair(user1, user2):
+    """Return (player_a, player_b, user1_is_a)."""
+    if user1 < user2:
+        return user1, user2, True
+    else:
+        return user2, user1, False
+
 
 @app.route("/api/games/<game_id>/debts", methods=["GET"])
 def get_game_debts(game_id):
-    """Get all debts for a game. Optionally filter by ?username= to get debts related to a user."""
+    """Return balances oriented for the requesting user.
+    Each item: { other: str, amount: int }
+    amount > 0 → the other owes me  |  amount < 0 → I owe the other."""
     username = request.args.get("username", "")
-    if username:
-        # All debts where this user owes someone OR someone owes this user
-        debts = list(debts_col.find({
-            "game_id": game_id,
-            "$or": [{"from_user": username}, {"to_user": username}]
-        }, {"_id": 0}))
-    else:
-        debts = list(debts_col.find({"game_id": game_id}, {"_id": 0}))
-    return jsonify(debts)
+    if not username:
+        raw = list(debts_col.find({"game_id": game_id}, {"_id": 0}))
+        return jsonify(raw)
+
+    raw = list(debts_col.find({
+        "game_id": game_id,
+        "$or": [{"player_a": username}, {"player_b": username}]
+    }, {"_id": 0}))
+
+    oriented = []
+    for d in raw:
+        if d["player_a"] == username:
+            oriented.append({"other": d["player_b"], "amount": d["amount"]})
+        else:
+            oriented.append({"other": d["player_a"], "amount": -d["amount"]})
+    return jsonify(oriented)
 
 
 @app.route("/api/games/<game_id>/debt", methods=["PUT"])
 def set_debt(game_id):
-    """Set how much from_user owes to_user. Amount must be 0-50, step 5."""
+    """Set balance between two users.
+    Body: { user, other, amount } — amount from user's perspective (-50 to +50, step 5).
+    amount > 0 → other owes user  |  amount < 0 → user owes other."""
     data = request.get_json()
-    from_user = data.get("from_user", "")
-    to_user = data.get("to_user", "")
+    user = data.get("user", "")
+    other = data.get("other", "")
     amount = data.get("amount", 0)
 
-    # Validate amount
-    if amount < 0 or amount > 50 or amount % 5 != 0:
-        return jsonify({"error": "Amount must be 0-50 in steps of 5"}), 400
-
-    if from_user == to_user:
+    if user == other:
         return jsonify({"error": "Cannot owe yourself"}), 400
 
-    if amount == 0:
-        # Remove the debt record
-        debts_col.delete_one({"game_id": game_id, "from_user": from_user, "to_user": to_user})
+    if amount < -50 or amount > 50 or amount % 5 != 0:
+        return jsonify({"error": "Amount must be -50 to +50 in steps of 5"}), 400
+
+    player_a, player_b, user_is_a = canonical_pair(user, other)
+    canonical_amount = amount if user_is_a else -amount
+
+    if canonical_amount == 0:
+        debts_col.delete_one({"game_id": game_id, "player_a": player_a, "player_b": player_b})
     else:
-        # Upsert the debt
         debts_col.update_one(
-            {"game_id": game_id, "from_user": from_user, "to_user": to_user},
-            {"$set": {"amount": amount}},
+            {"game_id": game_id, "player_a": player_a, "player_b": player_b},
+            {"$set": {"amount": canonical_amount}},
             upsert=True
         )
 
-    return jsonify({"success": True, "from_user": from_user, "to_user": to_user, "amount": amount})
+    return jsonify({"success": True, "user": user, "other": other, "amount": amount})
 
 
 # ---------- Polling optimization ----------
@@ -284,14 +306,14 @@ def poll_game(game_id):
         return jsonify({"hash": "none"})
     debts = list(debts_col.find({
         "game_id": game_id,
-        "$or": [{"from_user": username}, {"to_user": username}]
+        "$or": [{"player_a": username}, {"player_b": username}]
     }, {"_id": 0}))
     # Build a deterministic string from game players + debts
     state_str = json.dumps({
         "players": game.get("players", []),
         "open": game.get("open", True),
         "allowed_players": game.get("allowed_players", []),
-        "debts": sorted(debts, key=lambda d: (d.get("from_user",""), d.get("to_user","")))
+        "debts": sorted(debts, key=lambda d: (d.get("player_a",""), d.get("player_b","")))
     }, sort_keys=True)
     state_hash = hashlib.md5(state_str.encode()).hexdigest()
     return jsonify({"hash": state_hash})
