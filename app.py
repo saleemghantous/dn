@@ -3,18 +3,21 @@ from flask_cors import CORS
 from datetime import date
 from pymongo import MongoClient
 from bson import ObjectId
+from dotenv import load_dotenv
 import os
 import hashlib
 import json
+
+load_dotenv()
 
 app = Flask(__name__, static_folder="build")
 cors = CORS(app)
 app.config["CORS-HEADERS"] = "Content-Type"
 
-ADMIN_PASSWORD = "pokeradmin"
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "pokeradmin")
 
 # ---------- MongoDB connection ----------
-MONGO_URI = "mongodb+srv://saleemghantous_db_user:SM9UbE76sNzj327n@cluster0.dgy2czw.mongodb.net/?retryWrites=true&w=majority"
+MONGO_URI = os.getenv("MONGO_DB_URL", "mongodb+srv://saleemghantous_db_user:SM9UbE76sNzj327n@cluster0.dgy2czw.mongodb.net/?retryWrites=true&w=majority")
 client = MongoClient(MONGO_URI)
 db = client["poker"]
 users_col = db["users"]
