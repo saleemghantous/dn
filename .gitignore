@@ -1,0 +1,17 @@
+
+# dependencies
+/node_modules
+/venv
+.env
+
+# build output
+/build
+
+# Python cache
+__pycache__/
+*.pyc
+
+
+
+
+

@@ -1,0 +1,12 @@
+/* Navbar.css */
+.custom-nav-link {
+    text-decoration: none;
+    color: #fff;
+  }
+
+  .custom-nav-link:hover {
+    color: #ccc; /* Change color on hover */
+  }
+  
+  /* Add more styling as needed */
+  
