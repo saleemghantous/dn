@@ -63,8 +63,10 @@ function GameView() {
     return b ? b.amount : 0;
   };
 
+  const maxAmount = game ? (game.max_amount || 50) : 50;
+
   const handleSetBalance = async (otherPlayer, newAmount) => {
-    const clamped = Math.max(-50, Math.min(50, newAmount));
+    const clamped = Math.max(-maxAmount, Math.min(maxAmount, newAmount));
     const rounded = Math.round(clamped / 5) * 5;
 
     // Optimistic update
@@ -172,7 +174,7 @@ function GameView() {
       <div className="gameview-card">
         <h2>حدد المبلغ لكل لاعب</h2>
         <p className="card-subtitle">
-          + يعني إلك عنده &nbsp;|&nbsp; − يعني عليك إله &nbsp;(−٥٠ إلى +٥٠)
+          + يعني إلك عنده &nbsp;|&nbsp; − يعني عليك إله &nbsp;(−{maxAmount} إلى +{maxAmount})
         </p>
 
         {allRelevant.length === 0 ? (
@@ -193,21 +195,21 @@ function GameView() {
                       {bal > 0 ? `₪${bal} إلك` : bal < 0 ? `₪${Math.abs(bal)} عليك` : "متعادل"}
                     </span>
                   </div>
-                  <div className="debt-controls">
+                  <div className="debt-controls" dir="ltr">
                     <button
                       className="debt-btn minus"
                       onClick={() => handleSetBalance(player, bal - 5)}
-                      disabled={bal <= -50}
+                      disabled={bal <= -maxAmount}
                     >
                       −
                     </button>
-                    <span className={`debt-amount ${bal > 0 ? "positive" : bal < 0 ? "negative" : ""}`} dir="ltr">
+                    <span className={`debt-amount ${bal > 0 ? "positive" : bal < 0 ? "negative" : ""}`}>
                       {bal > 0 ? "+" : ""}{bal}
                     </span>
                     <button
                       className="debt-btn plus"
                       onClick={() => handleSetBalance(player, bal + 5)}
-                      disabled={bal >= 50}
+                      disabled={bal >= maxAmount}
                     >
                       +
                     </button>

@@ -44,6 +44,7 @@ def game_to_dict(g):
         "open": g.get("open", True),
         "players": g.get("players", []),
         "allowed_players": g.get("allowed_players", []),
+        "max_amount": g.get("max_amount", 50),
     }
 
 
@@ -155,6 +156,7 @@ def create_game():
         "open": True,
         "players": [],
         "allowed_players": [],
+        "max_amount": 50,
     }
     result = games_col.insert_one(new_game)
     new_game["_id"] = result.inserted_id
@@ -225,6 +227,22 @@ def set_allowed_players(game_id):
     return jsonify(game_to_dict(game))
 
 
+# ---------- Game max amount ----------
+@app.route("/api/games/<game_id>/max_amount", methods=["PUT"])
+def set_max_amount(game_id):
+    """Set the max debt amount for a game."""
+    data = request.get_json()
+    max_amount = data.get("max_amount", 50)
+    if max_amount < 5 or max_amount % 5 != 0:
+        return jsonify({"error": "Max must be a positive multiple of 5"}), 400
+    game = games_col.find_one({"_id": ObjectId(game_id)})
+    if not game:
+        return jsonify({"error": "Game not found"}), 404
+    games_col.update_one({"_id": ObjectId(game_id)}, {"$set": {"max_amount": max_amount}})
+    game = games_col.find_one({"_id": ObjectId(game_id)})
+    return jsonify(game_to_dict(game))
+
+
 # ---------- Debts (single record per pair) ----------
 # Schema: { game_id: str, player_a: str, player_b: str, amount: int }
 # player_a < player_b (alphabetically sorted — canonical ordering)
@@ -277,8 +295,12 @@ def set_debt(game_id):
     if user == other:
         return jsonify({"error": "Cannot owe yourself"}), 400
 
-    if amount < -50 or amount > 50 or amount % 5 != 0:
-        return jsonify({"error": "Amount must be -50 to +50 in steps of 5"}), 400
+    # Get game's max_amount (default 50)
+    game = games_col.find_one({"_id": ObjectId(game_id)})
+    max_amt = game.get("max_amount", 50) if game else 50
+
+    if amount < -max_amt or amount > max_amt or amount % 5 != 0:
+        return jsonify({"error": f"Amount must be -{max_amt} to +{max_amt} in steps of 5"}), 400
 
     player_a, player_b, user_is_a = canonical_pair(user, other)
     canonical_amount = amount if user_is_a else -amount

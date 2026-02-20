@@ -81,6 +81,13 @@ function AdminPage() {
     fetchGames();
   };
 
+  const handleSetMaxAmount = async (gameId, value) => {
+    const num = parseInt(value, 10);
+    if (isNaN(num) || num < 5 || num % 5 !== 0) return;
+    await axios.put(`/api/games/${gameId}/max_amount`, { max_amount: num });
+    fetchGames();
+  };
+
   const handleAddUser = async (e) => {
     e.preventDefault();
     if (!newUser.username.trim() || !newUser.phone.trim()) return;
@@ -161,6 +168,19 @@ function AdminPage() {
                     🔑 صلاحيات ({(game.allowed_players || []).length})
                   </button>
                   <button className="delete-btn" onClick={() => handleDeleteGame(game.id)}>حذف</button>
+                </div>
+
+                {/* Max Amount */}
+                <div className="max-amount-row">
+                  <span className="max-amount-label">الحد الأقصى:</span>
+                  <input
+                    type="number"
+                    className="max-amount-input"
+                    value={game.max_amount || 50}
+                    min={5}
+                    step={5}
+                    onChange={(e) => handleSetMaxAmount(game.id, e.target.value)}
+                  />
                 </div>
 
                 {/* Allowed Players Panel */}
