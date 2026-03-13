@@ -14,6 +14,7 @@ function GameView() {
   const [game, setGame] = useState(null);
   const [balances, setBalances] = useState([]); // [{ other, amount }]
   const [summaries, setSummaries] = useState({}); // { player: { plus, minus, net } }
+  const [expandedPlayer, setExpandedPlayer] = useState(null);
   const [loading, setLoading] = useState(true);
   const intervalRef = useRef(null);
   const lastHashRef = useRef("");
@@ -190,16 +191,20 @@ function GameView() {
               return (
                 <div className={`debt-item ${!isOnline ? "offline" : ""}`} key={player}>
                   <div className="debt-player-row">
-                    <span className="debt-player-name">
+                    <span
+                      className="debt-player-name clickable"
+                      onClick={() => setExpandedPlayer(expandedPlayer === player ? null : player)}
+                    >
                       {player}
                       <span className={`online-dot ${isOnline ? "on" : "off"}`} title={isOnline ? "في اللعبة" : "لم يدخل بعد"}></span>
+                      <span className="expand-arrow">{expandedPlayer === player ? "▲" : "▼"}</span>
                     </span>
                     <span className={`balance-badge ${bal > 0 ? "positive" : bal < 0 ? "negative" : "zero"}`} dir="ltr">
                       {bal > 0 ? `₪${bal} إلك` : bal < 0 ? `₪${Math.abs(bal)} عليك` : "متعادل"}
                     </span>
                   </div>
-                  {/* Player's overall totals */}
-                  {summaries[player] && (
+                  {/* Player's overall totals — shown on click */}
+                  {expandedPlayer === player && summaries[player] && (
                     <div className="player-totals" dir="ltr">
                       <span className="ptotal plus">+{summaries[player].plus}</span>
                       <span className="ptotal minus">{summaries[player].minus}</span>

@@ -206,6 +206,22 @@
   display: flex;
   align-items: center;
   gap: 6px;
+  cursor: default;
+}
+
+.debt-player-name.clickable {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.debt-player-name.clickable:active {
+  opacity: 0.7;
+}
+
+.expand-arrow {
+  font-size: 0.55rem;
+  color: rgba(255, 255, 255, 0.35);
+  margin-inline-start: 2px;
 }
 
 .online-dot {
@@ -282,6 +298,8 @@
 .ptotal {
   padding: 2px 8px;
   border-radius: 12px;
+  direction: ltr;
+  unicode-bidi: isolate;
 }
 
 .ptotal.plus {
