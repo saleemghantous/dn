@@ -261,9 +261,7 @@ function GameView() {
               <div className="modal-summary" dir="ltr">
                 <span className="ptotal plus">+{summaries[modalPlayer].plus}</span>
                 <span className="ptotal minus">{summaries[modalPlayer].minus}</span>
-                <span className={`ptotal net ${summaries[modalPlayer].net >= 0 ? "pos" : "neg"}`}>
-                  صافي: {summaries[modalPlayer].net >= 0 ? "+" : ""}{summaries[modalPlayer].net}
-                </span>
+                
               </div>
             )}
 
