@@ -104,10 +104,11 @@ function GameView() {
   };
 
   const openPlayerModal = async (player) => {
+    setModalDebts([]);          // clear previous data
+    setModalPlayer(player);     // open modal immediately
     try {
       const res = await axios.get(`/api/games/${gameId}/player_debts?player=${player}`);
       setModalDebts(res.data);
-      setModalPlayer(player);
     } catch (err) {
       console.error(err);
     }
