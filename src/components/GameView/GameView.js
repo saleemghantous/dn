@@ -13,6 +13,7 @@ function GameView() {
 
   const [game, setGame] = useState(null);
   const [balances, setBalances] = useState([]); // [{ other, amount }]
+  const [summaries, setSummaries] = useState({}); // { player: { plus, minus, net } }
   const [loading, setLoading] = useState(true);
   const intervalRef = useRef(null);
   const lastHashRef = useRef("");
@@ -20,13 +21,15 @@ function GameView() {
   // Full data fetch — only called when hash changes
   const fetchFullData = useCallback(async () => {
     try {
-      const [gameRes, debtsRes] = await Promise.all([
+      const [gameRes, debtsRes, summRes] = await Promise.all([
         axios.get("/api/games"),
         axios.get(`/api/games/${gameId}/debts?username=${username}`),
+        axios.get(`/api/games/${gameId}/summaries`),
       ]);
       const foundGame = gameRes.data.find((g) => g.id === gameId);
       setGame(foundGame || null);
       setBalances(debtsRes.data); // [{ other, amount }]
+      setSummaries(summRes.data); // { player: {plus, minus, net} }
     } catch (err) {
       console.error(err);
     }
@@ -195,6 +198,17 @@ function GameView() {
                       {bal > 0 ? `₪${bal} إلك` : bal < 0 ? `₪${Math.abs(bal)} عليك` : "متعادل"}
                     </span>
                   </div>
+                  {/* Player's overall totals */}
+                  {summaries[player] && (
+                    <div className="player-totals" dir="ltr">
+                      <span className="ptotal plus">+{summaries[player].plus}</span>
+                      <span className="ptotal minus">{summaries[player].minus}</span>
+                      <span className={`ptotal net ${summaries[player].net >= 0 ? "pos" : "neg"}`}>
+                        صافي: {summaries[player].net >= 0 ? "+" : ""}{summaries[player].net}
+                      </span>
+                    </div>
+                  )}
+
                   <div className="debt-controls" dir="ltr">
                     <button
                       className="debt-btn minus"

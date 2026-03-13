@@ -317,6 +317,46 @@ def set_debt(game_id):
     return jsonify({"success": True, "user": user, "other": other, "amount": amount})
 
 
+# ---------- All-player summaries ----------
+@app.route("/api/games/<game_id>/summaries", methods=["GET"])
+def get_game_summaries(game_id):
+    """Return totals for every player in the game.
+    Response: { player_name: { plus: int, minus: int, net: int }, ... }
+    plus  = total others owe this player
+    minus = total this player owes others
+    net   = plus + minus  (positive = winning, negative = losing)"""
+    game = games_col.find_one({"_id": ObjectId(game_id)})
+    if not game:
+        return jsonify({})
+
+    all_players = list(set((game.get("players", []) + game.get("allowed_players", []))))
+    raw = list(debts_col.find({"game_id": game_id}, {"_id": 0}))
+
+    totals = {p: {"plus": 0, "minus": 0, "net": 0} for p in all_players}
+
+    for d in raw:
+        a = d["player_a"]
+        b = d["player_b"]
+        amt = d["amount"]  # positive → b owes a
+        # For player_a: amt > 0 means plus (owed to a), amt < 0 means minus (a owes b)
+        if a in totals:
+            if amt > 0:
+                totals[a]["plus"] += amt
+            else:
+                totals[a]["minus"] += amt
+        # For player_b: flipped sign
+        if b in totals:
+            if -amt > 0:
+                totals[b]["plus"] += -amt
+            else:
+                totals[b]["minus"] += -amt
+
+    for p in totals:
+        totals[p]["net"] = totals[p]["plus"] + totals[p]["minus"]
+
+    return jsonify(totals)
+
+
 # ---------- Polling optimization ----------
 @app.route("/api/games/<game_id>/poll", methods=["GET"])
 def poll_game(game_id):
@@ -326,10 +366,7 @@ def poll_game(game_id):
     game = games_col.find_one({"_id": ObjectId(game_id)})
     if not game:
         return jsonify({"hash": "none"})
-    debts = list(debts_col.find({
-        "game_id": game_id,
-        "$or": [{"player_a": username}, {"player_b": username}]
-    }, {"_id": 0}))
+    debts = list(debts_col.find({"game_id": game_id}, {"_id": 0}))
     # Build a deterministic string from game players + debts
     state_str = json.dumps({
         "players": game.get("players", []),

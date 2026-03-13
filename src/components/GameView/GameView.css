@@ -265,6 +265,48 @@
   margin-top: 8px;
 }
 
+/* Player totals row */
+.player-totals {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 8px;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.ptotal {
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.ptotal.plus {
+  color: #2ed573;
+  background: rgba(46, 213, 115, 0.1);
+}
+
+.ptotal.minus {
+  color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.1);
+}
+
+.ptotal.net {
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.ptotal.net.pos {
+  color: #2ed573;
+}
+
+.ptotal.net.neg {
+  color: #ff6b6b;
+}
+
 .debt-btn {
   width: 52px;
   height: 52px;
