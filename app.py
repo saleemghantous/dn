@@ -317,6 +317,27 @@ def set_debt(game_id):
     return jsonify({"success": True, "user": user, "other": other, "amount": amount})
 
 
+# ---------- Single player detail ----------
+@app.route("/api/games/<game_id>/player_debts", methods=["GET"])
+def get_player_debts(game_id):
+    """Return all debts for a specific player, oriented from their perspective.
+    ?player=X → [{ other, amount }]  (positive = other owes X, negative = X owes other)"""
+    player = request.args.get("player", "")
+    if not player:
+        return jsonify([]), 400
+    raw = list(debts_col.find({
+        "game_id": game_id,
+        "$or": [{"player_a": player}, {"player_b": player}]
+    }, {"_id": 0}))
+    oriented = []
+    for d in raw:
+        if d["player_a"] == player:
+            oriented.append({"other": d["player_b"], "amount": d["amount"]})
+        else:
+            oriented.append({"other": d["player_a"], "amount": -d["amount"]})
+    return jsonify(oriented)
+
+
 # ---------- All-player summaries ----------
 @app.route("/api/games/<game_id>/summaries", methods=["GET"])
 def get_game_summaries(game_id):

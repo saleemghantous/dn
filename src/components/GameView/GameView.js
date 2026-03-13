@@ -14,7 +14,8 @@ function GameView() {
   const [game, setGame] = useState(null);
   const [balances, setBalances] = useState([]); // [{ other, amount }]
   const [summaries, setSummaries] = useState({}); // { player: { plus, minus, net } }
-  const [expandedPlayer, setExpandedPlayer] = useState(null);
+  const [modalPlayer, setModalPlayer] = useState(null);
+  const [modalDebts, setModalDebts] = useState([]);
   const [loading, setLoading] = useState(true);
   const intervalRef = useRef(null);
   const lastHashRef = useRef("");
@@ -99,6 +100,16 @@ function GameView() {
     } catch (err) {
       alert(err.response?.data?.error || "فشل التحديث");
       fetchFullData();
+    }
+  };
+
+  const openPlayerModal = async (player) => {
+    try {
+      const res = await axios.get(`/api/games/${gameId}/player_debts?player=${player}`);
+      setModalDebts(res.data);
+      setModalPlayer(player);
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -193,26 +204,16 @@ function GameView() {
                   <div className="debt-player-row">
                     <span
                       className="debt-player-name clickable"
-                      onClick={() => setExpandedPlayer(expandedPlayer === player ? null : player)}
+                      onClick={() => openPlayerModal(player)}
                     >
                       {player}
                       <span className={`online-dot ${isOnline ? "on" : "off"}`} title={isOnline ? "في اللعبة" : "لم يدخل بعد"}></span>
-                      <span className="expand-arrow">{expandedPlayer === player ? "▲" : "▼"}</span>
+                      <span className="expand-arrow">◀</span>
                     </span>
                     <span className={`balance-badge ${bal > 0 ? "positive" : bal < 0 ? "negative" : "zero"}`} dir="ltr">
                       {bal > 0 ? `₪${bal} إلك` : bal < 0 ? `₪${Math.abs(bal)} عليك` : "متعادل"}
                     </span>
                   </div>
-                  {/* Player's overall totals — shown on click */}
-                  {expandedPlayer === player && summaries[player] && (
-                    <div className="player-totals" dir="ltr">
-                      <span className="ptotal plus">+{summaries[player].plus}</span>
-                      <span className="ptotal minus">{summaries[player].minus}</span>
-                      <span className={`ptotal net ${summaries[player].net >= 0 ? "pos" : "neg"}`}>
-                        صافي: {summaries[player].net >= 0 ? "+" : ""}{summaries[player].net}
-                      </span>
-                    </div>
-                  )}
 
                   <div className="debt-controls" dir="ltr">
                     <button
@@ -244,6 +245,48 @@ function GameView() {
       <div className="live-indicator">
         <span className="live-dot"></span> مباشر — تحديث تلقائي
       </div>
+
+      {/* Player detail modal */}
+      {modalPlayer && (
+        <div className="modal-overlay" onClick={() => setModalPlayer(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>{modalPlayer}</h3>
+              <button className="modal-close" onClick={() => setModalPlayer(null)}>×</button>
+            </div>
+
+            {/* Summary row */}
+            {summaries[modalPlayer] && (
+              <div className="modal-summary" dir="ltr">
+                <span className="ptotal plus">+{summaries[modalPlayer].plus}</span>
+                <span className="ptotal minus">{summaries[modalPlayer].minus}</span>
+                <span className={`ptotal net ${summaries[modalPlayer].net >= 0 ? "pos" : "neg"}`}>
+                  صافي: {summaries[modalPlayer].net >= 0 ? "+" : ""}{summaries[modalPlayer].net}
+                </span>
+              </div>
+            )}
+
+            {/* Detail table */}
+            <div className="modal-table">
+              {modalDebts.length === 0 ? (
+                <p className="no-players-text">لا توجد معاملات</p>
+              ) : (
+                modalDebts.map((d) => (
+                  <div className="modal-row" key={d.other}>
+                    <span className="modal-player">{d.other}</span>
+                    <span className={`modal-amount ${d.amount > 0 ? "positive" : d.amount < 0 ? "negative" : ""}`} dir="ltr">
+                      {d.amount > 0 ? `+${d.amount}` : d.amount}
+                    </span>
+                    <span className="modal-label">
+                      {d.amount > 0 ? "إله" : d.amount < 0 ? "عليه" : "متعادل"}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
