@@ -1,0 +1,26 @@
+/* HomeComp.css */
+
+.table {
+    font-size: 14px; /* Smaller font size */
+    margin: 0; /* Remove default margin */
+    padding: 0; /* Remove default padding */
+}
+
+.table th, .table td {
+    padding: 5px; /* Smaller padding */
+    margin: 0; /* Remove margin */
+}
+
+.header-row, .content-row {
+    margin: 0; /* Remove default margin */
+    padding: 0; /* Remove default padding */
+}
+
+.header-col1, .header-col2, .content-col {
+    padding: 5px; /* Smaller padding */
+    margin: 0; /* Remove margin */
+}
+
+.rotated-text {
+    font-size: 14px; /* Smaller font size for rotated text */
+}
