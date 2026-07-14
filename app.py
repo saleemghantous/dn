@@ -20,7 +20,9 @@ from apscheduler.schedulers.background import BackgroundScheduler
 import atexit
 from config import config  # Import the config dictionary
 
-url = os.getenv("MONGO_DB_URL", "mongodb+srv://saleemghantous_db_user:jhm8qL7H569yepgw@cluster0.ipvvkdr.mongodb.net/emrgcall?retryWrites=true&w=majority")
+url = os.getenv("MONGO_DB_URL")
+if not url:
+    raise RuntimeError("MONGO_DB_URL environment variable is not set")
 
 
 app = Flask(__name__, static_folder="build")
