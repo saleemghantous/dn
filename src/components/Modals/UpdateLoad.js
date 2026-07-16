@@ -4,8 +4,6 @@ import Modal from 'react-bootstrap/Modal';
 import Select from 'react-select';
 
 const UpdateLoad = ({ loanValue, firstPlayer, secondPlayer, setLoanList }) => {
-
-
     const [show, setShow] = useState(false);
     const [selectedValue, setSelectedValue] = useState();
     const selectInputRef = useRef(null);
@@ -13,72 +11,47 @@ const UpdateLoad = ({ loanValue, firstPlayer, secondPlayer, setLoanList }) => {
     const handleClose = () => setShow(false);
     const handleShow = () => setShow(true);
 
-
     useEffect(() => {
-        setSelectedValue({ value: loanValue, label: loanValue })
-    }, [show])
-
-
-    useEffect(() => {
-        if (show && selectInputRef.current) {
-            selectInputRef.current.focus();
+        if (show) {
+            setSelectedValue({ value: loanValue, label: loanValue });
+            selectInputRef.current?.focus();
         }
     }, [show]);
 
-
     const handleSave = () => {
-        setLoanList((prevList) => {
-            const copyLoanList = { ...prevList }
-            copyLoanList[`${firstPlayer}_${secondPlayer}`] = selectedValue["value"]
-            return copyLoanList
-        })
-        handleClose()
-    }
+        setLoanList((prevList) => ({
+            ...prevList,
+            [`${firstPlayer}_${secondPlayer}`]: selectedValue.value,
+        }));
+        handleClose();
+    };
 
     const options = Array.from({ length: 51 }, (_, i) => ({
         value: i * 5,
-        label: i * 5
+        label: i * 5,
     }));
 
-    const handleChange = (selectedOption) => {
-        setSelectedValue(selectedOption);
+    const handleChange = (selectedOption) => setSelectedValue(selectedOption);
+
+    const adjustValue = (delta) => {
+        const newValue = Math.max(0, selectedValue.value + delta);
+        setSelectedValue({ value: newValue, label: newValue });
     };
-
-    const handleAdd = () => {
-        const copySelectValue = { value: selectedValue["value"] + 5, label: selectedValue["value"] + 5 }
-        setSelectedValue(copySelectValue);
-    };
-
-    const handleSubtract = () => {
-        if (selectedValue["value"] > 0) {
-            const copySelectValue = { value: selectedValue["value"] - 5, label: selectedValue["value"] - 5 }
-            setSelectedValue(copySelectValue);
-        }
-    };
-
-
 
     return (
         <Fragment>
-
-
-            {
-                loanValue > 0 ? (
-                    <Button size='sm' style={{ width: "30px", padding: "0px", margin: "0px",fontSize:"10px" }} variant="danger" onClick={handleShow}>
-                        {loanValue}
-                    </Button>
-                ) : (
-                    <Button size='sm' style={{ width: "30px", padding: "0px", margin: "0px" ,fontSize:"10px"}} variant="primary" onClick={handleShow}>
-                        {loanValue}
-                    </Button>
-                )
-            }
-
-
+            <Button
+                size="sm"
+                style={{ width: "30px", padding: "0px", margin: "0px", fontSize: "10px" }}
+                variant={loanValue > 0 ? "danger" : "primary"}
+                onClick={handleShow}
+            >
+                {loanValue}
+            </Button>
 
             <Modal backdrop="static" show={show} onHide={handleClose}>
                 <Modal.Header>
-                    <Modal.Title>({firstPlayer})  לוקח מ- ({secondPlayer})</Modal.Title>
+                    <Modal.Title>({firstPlayer}) לוקח מ- ({secondPlayer})</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
                     <Select
@@ -87,27 +60,18 @@ const UpdateLoad = ({ loanValue, firstPlayer, secondPlayer, setLoanList }) => {
                         ref={selectInputRef}
                         options={options}
                         isSearchable={false}
-                        styles={{
-                            control: (base) => ({
-                                ...base,
-                                minHeight: '40px'
-                            })
-                        }}
+                        styles={{ control: (base) => ({ ...base, minHeight: '40px' }) }}
                     />
-                    <Button onClick={handleAdd} className='mt-2' variant='success'>+</Button>
-                    <Button onClick={handleSubtract} style={{ fontSize: "20px" }} className='mt-2 mx-3 ' variant='danger'>-</Button>
+                    <Button onClick={() => adjustValue(5)} className="mt-2" variant="success">+</Button>
+                    <Button onClick={() => adjustValue(-5)} className="mt-2 mx-3" variant="danger" style={{ fontSize: "20px" }}>-</Button>
                 </Modal.Body>
                 <Modal.Footer>
-                    <Button variant="secondary" onClick={handleClose}>
-                        סגור
-                    </Button>
-                    <Button variant="success" onClick={handleSave}>
-                        שמירה
-                    </Button>
+                    <Button variant="secondary" onClick={handleClose}>סגור</Button>
+                    <Button variant="success" onClick={handleSave}>שמירה</Button>
                 </Modal.Footer>
             </Modal>
-        </Fragment >
+        </Fragment>
     );
-}
+};
 
 export default UpdateLoad;

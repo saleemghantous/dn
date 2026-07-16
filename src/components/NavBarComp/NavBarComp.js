@@ -83,9 +83,9 @@ const Navbar = () => {
             <nav>
 
                 <div className="nav-logo-container">
-                    <h2 style={{ fontSize: '28px', fontWeight: 'bold', color: '#4CAF50', margin: '20px 0', textShadow: '2px 2px 4px rgba(0, 0, 0, 0.3)' }}>
-                        Poker
-                    </h2>
+                <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#333', margin: '19px 0' }}>צוות חירום</h2>
+
+                   
                     {
                         // <img src={WhoCooked} alt="Website Logo" />
                         // <img onClick={() => navigate('/')} src={WhoCooked} alt="Website Logo" style={{ cursor: "pointer" }} />
